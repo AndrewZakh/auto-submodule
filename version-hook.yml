@@ -1,0 +1,23 @@
+# auto-version-hook config: https://github.com/AndrewZakh/auto-version-hook
+# Trunk-based: feature/patch branches bump the version off main and merge back.
+
+version:
+  file: env.yml
+  key: version
+  parse_regex: '^v(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)$'
+
+git:
+  remote: origin
+  fetch: true
+
+# Order = matching priority (first match wins).
+branch_flow:
+  - {name: main,    regex: '^(master|main)$', protected: true, policy: keep}
+  - {name: patch,   regex: '^patch',          target: main, policy: increment, bump: patch}
+  - {name: feature, regex: '^feat(ure)?',     target: main, policy: increment, bump: minor}
+  - {name: tech,    regex: '^(tech|chore|docs|ci)/', target: main, policy: ignore}
+
+hooks:
+  auto_stage: true
+  on_error: fail
+  skip_merges: true
