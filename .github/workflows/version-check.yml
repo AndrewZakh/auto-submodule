@@ -1,0 +1,24 @@
+# Version validator: the server-side half of auto-version-hook. Catches
+# commits made with --no-verify and merges done via the web UI, which never
+# run the local pre-commit hook.
+# https://github.com/AndrewZakh/auto-version-hook
+
+name: version-check
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1   # the hook fetches the target branches itself
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # auto-version-hook requires >= 3.11
+      - run: pip install --quiet git+https://github.com/AndrewZakh/auto-version-hook.git
+      - run: auto-version-hook --check --branch "${{ github.head_ref || github.ref_name }}"
