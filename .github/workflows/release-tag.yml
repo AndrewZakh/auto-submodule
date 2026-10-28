@@ -1,0 +1,44 @@
+# On every push to main: read the version from env.yml and tag the release.
+# Idempotent by design — if the tag already exists, the run exits quietly:
+# auto-version-hook never downgrades versions, so a version seen on main once
+# is already released, and merges that do not change the version are skipped.
+
+name: release-tag
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write   # push the tag
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false   # serialize rapid merges
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet pyyaml
+      - name: Read version from env.yml
+        id: version
+        run: echo "version=$(python -c 'import yaml; print(yaml.safe_load(open("env.yml"))["version"])')" >> "$GITHUB_OUTPUT"
+      - name: Tag the release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$VERSION")" ]; then
+            echo "тег $VERSION уже существует — ничего не делаем"
+            exit 0
+          fi
+          git config user.name "release-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git tag -a "$VERSION" -m "release $VERSION"
+          git push origin "refs/tags/$VERSION"
