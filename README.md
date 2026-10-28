@@ -1,8 +1,12 @@
 # submodule-hook
 
+[![tests](https://github.com/AndrewZakh/auto-submodule/actions/workflows/tests.yml/badge.svg)](https://github.com/AndrewZakh/auto-submodule/actions/workflows/tests.yml)
+[![version-check](https://github.com/AndrewZakh/auto-submodule/actions/workflows/version-check.yml/badge.svg)](https://github.com/AndrewZakh/auto-submodule/actions/workflows/version-check.yml)
+
 Git-хуки на Python (pre-commit + pre-push): держат сабмодули на коммитах, закреплённых
 в `env.yml`, не дают конфигу и сабмодулю разъехаться и не пускают в remote висячие
-коммиты сабмодулей. Идеологический наследник auto-version-hook: тот же стек
+коммиты сабмодулей. Идеологический наследник
+[auto-version-hook](https://github.com/AndrewZakh/auto-version-hook): тот же стек
 (Python + PyYAML, никаких других зависимостей), те же коды возврата, тот же
 `scripts/install.sh`.
 
@@ -226,11 +230,27 @@ Dry-run не нужен: хук ничего не пишет — только ч
 - **`git commit --no-verify`** обходит pre-commit локально, `git push --no-verify` —
   pre-push; серверный валидатор для CI — в [BACKLOG.md](BACKLOG.md).
 
+## Этот проект сам на них работает
+
+Репозиторий сидит на собственной собаке: версия живёт в [env.yml](env.yml) и
+бампится [auto-version-hook](https://github.com/AndrewZakh/auto-version-hook)
+(конфиг — [version-hook.yml](version-hook.yml), trunk-based: `feature/*` поднимают
+минорку, `patch/*` — патч, `tech|chore|docs|ci` не бампят). Оба инструмента стоят
+в одном pre-commit: сначала auto-version-hook обновляет и стейджит `env.yml`,
+затем сабмодульные проверки молча проходят (секция `submodules:` в этом `env.yml`
+не используется — своих сабмодулей у проекта нет, и хук корректно бездействует).
+Серверную половину валидации версии делает CI — [version-check.yml](.github/workflows/version-check.yml).
+
+Комбинированные хуки для разработки ставит `scripts/install-dev-hooks.sh`.
+
 ## Разработка
 
 ```sh
-pip install -e ".[dev]"
+python3 -m venv .venv && . .venv/bin/activate   # Python 3.11+ (нужен auto-version-hook;
+                                                # сам пакет работает на 3.9+)
+pip install -e ".[dev]" git+https://github.com/AndrewZakh/auto-version-hook.git
 pytest
+./scripts/install-dev-hooks.sh   # version bump + собственные проверки одним pre-commit
 ```
 
 Тесты создают одноразовые git-репозитории с настоящими сабмодулями (bare-репозиторий
