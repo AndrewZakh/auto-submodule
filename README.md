@@ -228,29 +228,44 @@ Dry-run не нужен: хук ничего не пишет — только ч
 - **Неинициализированный сабмодуль** (`git submodule status` с минусом) — проверки
   работают: ссылка в индексе суперпроекта есть, чекаут не сверяется.
 - **`git commit --no-verify`** обходит pre-commit локально, `git push --no-verify` —
-  pre-push; серверный валидатор для CI — в [BACKLOG.md](BACKLOG.md).
+  pre-push; серверный валидатор для CI — задача `submodule/1` в [tasks.yml](tasks.yml).
 
 ## Этот проект сам на них работает
 
-Репозиторий сидит на собственной собаке: версия живёт в [env.yml](env.yml) и
+Репозиторий сидит на собственной собаке. Версия живёт в [env.yml](env.yml) и
 бампится [auto-version-hook](https://github.com/AndrewZakh/auto-version-hook)
 (конфиг — [version-hook.yml](version-hook.yml), trunk-based: `feature/*` поднимают
-минорку, `patch/*` — патч, `tech|chore|docs|ci` не бампят). Оба инструмента стоят
-в одном pre-commit: сначала auto-version-hook обновляет и стейджит `env.yml`,
-затем сабмодульные проверки молча проходят (секция `submodules:` в этом `env.yml`
-не используется — своих сабмодулей у проекта нет, и хук корректно бездействует).
-Серверную половину валидации версии делает CI — [version-check.yml](.github/workflows/version-check.yml).
+минорку, `patch/*` — патч, `tech|chore|docs|ci` не бампят); версия пакета в
+`pyproject.toml` зеркалируется автоматически (`version_files`). Оба инструмента —
+в одном [.pre-commit-config.yaml](.pre-commit-config.yaml): сначала auto-version-hook
+обновляет и стейджит `env.yml`/`pyproject.toml`, затем сабмодульные проверки молча
+проходят (секция `submodules:` в этом `env.yml` не используется — своих сабмодулей
+у проекта нет, и хук корректно бездействует). Серверную половину валидации версии
+делает CI — [version-check.yml](.github/workflows/version-check.yml), теги релизов
+ставит [release-tag.yml](.github/workflows/release-tag.yml).
 
-Комбинированные хуки для разработки ставит `scripts/install-dev-hooks.sh`.
+Задачи проекта ведутся в [tasks.yml](tasks.yml) через
+[jearless](https://github.com/AndrewZakh/jearless) — git-native трекер: статус не
+хранится, а выводится из веток и merge-коммитов:
+
+```sh
+jear sprint                       # available / in_progress / done
+jear add submodule "summary"      # новая задача (язык реестра — английский)
+jear take submodule 1             # взял задачу = запушить ветку feature/submodule/1-…
+```
+
+Хуки для разработки ставит `scripts/install-dev-hooks.sh` (pre-commit framework).
 
 ## Разработка
 
 ```sh
 python3 -m venv .venv && . .venv/bin/activate   # Python 3.11+ (нужен auto-version-hook;
                                                 # сам пакет работает на 3.9+)
-pip install -e ".[dev]" git+https://github.com/AndrewZakh/auto-version-hook.git
+pip install -e ".[dev]" \
+    git+https://github.com/AndrewZakh/auto-version-hook.git \
+    git+https://github.com/AndrewZakh/jearless.git
 pytest
-./scripts/install-dev-hooks.sh   # version bump + собственные проверки одним pre-commit
+./scripts/install-dev-hooks.sh   # auto-version + собственные проверки одним pre-commit
 ```
 
 Тесты создают одноразовые git-репозитории с настоящими сабмодулями (bare-репозиторий

@@ -1,0 +1,46 @@
+# The eternal jearless task registry (README: frozen facts only, no live state).
+# Status is never stored: available = here without a branch; in_progress = a branch
+# on origin; done = a merge commit in main.
+tasks:
+  submodule:
+    - id: 1
+      summary: 'CI validator (--check): verify pins server-side'
+      description: |
+        The local hook is bypassed by git commit --no-verify, and server merges
+        (the Merge PR button) never run pre-commit hooks at all. Add --check:
+        read-only, exit 0 ok / 1 would block / 2 config problems — the same
+        semantics as auto-version-hook --check. Plus ready-made jobs for
+        GitLab CI and GitHub Actions.
+      story_points: 3
+    - id: 2
+      summary: 'worktree-vs-index drift: warn or block'
+      description: |
+        Today an unstaged env.yml edit or an unstaged submodule checkout
+        switch is a warning. If the warnings turn out to be ignored in real
+        usage, promote them to blocking errors. Decide after the team has
+        lived with the hook for a while.
+      story_points: 1
+    - id: 3
+      summary: '--sync: switch all submodules to pinned commits in one move'
+      description: |
+        Convenience sugar: run the fix command from the error message for
+        every submodule at once (git switch --detach <pin> + git add each
+        folder). The error message already carries the per-submodule command.
+      story_points: 1
+    - id: 4
+      summary: 'pre-push on-demand: auto-push submodules instead of blocking'
+      description: |
+        Opt-in flag mirroring git push --recurse-submodules=on-demand: push
+        the referenced submodule commits automatically, then let the
+        superproject push through. Flag-only — it breaks the
+        hook-changes-nothing principle, so the default stays read-only
+        blocking.
+      story_points: 2
+    - id: 5
+      summary: robot auto-bump of commit_sha (Renovate regex / Dependabot gitsubmodule)
+      description: |
+        Renovate's regex manager or Dependabot's gitsubmodule ecosystem can
+        open a PR updating the submodule gitlink; aim it at commit_sha in
+        env.yml so the robot bump arrives together with the config change —
+        the pre-commit hook then guarantees the pair travels in one commit.
+      story_points: 3

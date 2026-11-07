@@ -1,40 +1,23 @@
 #!/bin/sh
-# Development hooks for this repository itself: the sibling auto-version-hook
-# (https://github.com/AndrewZakh/auto-version-hook) bumps the version in
-# env.yml, then our own submodule-hook checks run — the tools dogfood their
-# own combination. Requires both commands on PATH:
+# Development hooks for this repository itself, via the pre-commit framework:
+# auto-version-hook (env.yml bump + pyproject mirror) and our own submodule
+# checks. Requires pre-commit, auto-version-hook and submodule-hook on PATH:
 #
 #     python3 -m venv .venv && . .venv/bin/activate   # Python 3.11+
-#     pip install -e ".[dev]" git+https://github.com/AndrewZakh/auto-version-hook.git
+#     pip install -e ".[dev]" \
+#         git+https://github.com/AndrewZakh/auto-version-hook.git \
+#         git+https://github.com/AndrewZakh/jearless.git
 #     ./scripts/install-dev-hooks.sh
 
 set -eu
 
 REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-HOOKS_DIR=$(git -C "$REPO_DIR" rev-parse --git-path hooks)
-case $HOOKS_DIR in
-    /*) ;;
-    *) HOOKS_DIR="$REPO_DIR/$HOOKS_DIR" ;;
-esac
 
-write_hook() {
-    hook=$1
-    body=$2
-    path="$HOOKS_DIR/$hook"
-    if [ -f "$path" ]; then
-        cp "$path" "$path.bak"
-        echo "existing $hook hook backed up to $path.bak"
-    fi
-    printf '%s\n' "$body" > "$path"
-    chmod +x "$path"
-    echo "installed $hook: $path"
+command -v pre-commit >/dev/null 2>&1 || {
+    echo "pre-commit не найден в PATH: pip install -e \".[dev]\"" >&2
+    exit 1
 }
 
-write_hook pre-commit '#!/bin/sh
-# combined: bump the version first (it stages env.yml), then our own checks
-auto-version-hook "$@" || exit $?
-exec submodule-hook "$@"'
-
-write_hook pre-push '#!/bin/sh
-# our own dangling-commit check; git passes the remote name and URL as $1/$2
-exec submodule-hook --push'
+cd "$REPO_DIR"
+# --overwrite: this repo's hooks are reproducibly installed by this script
+pre-commit install --overwrite --hook-type pre-commit --hook-type pre-push
