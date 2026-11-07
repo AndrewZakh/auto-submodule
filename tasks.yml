@@ -44,13 +44,3 @@ tasks:
         env.yml so the robot bump arrives together with the config change —
         the pre-commit hook then guarantees the pair travels in one commit.
       story_points: 3
-    - id: 6
-      summary: CI pipeline examples for the pin check (GitHub Actions & GitLab CI)
-      description: |
-        Ready-made pipeline configs for server-side pin validation, shipped the
-        way auto-version-hook ships its ci/*.example.yml: copy into a target
-        repository, substitute the install URL. Two files: a GitHub Actions
-        workflow (pull_request + push to protected branches) and a GitLab CI
-        job (MR pipelines via CI_MERGE_REQUEST_SOURCE_BRANCH_NAME). Depends on
-        submodule/1 — the examples invoke submodule-hook --check.
-      story_points: 2
