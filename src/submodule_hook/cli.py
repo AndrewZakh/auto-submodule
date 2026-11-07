@@ -87,14 +87,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if result.hard_failures:
         if cfg.hook.on_error == "warn":
             print(
-                "submodule-hook: on_error=warn — коммит пропущен, "
-                "но конфиг и сабмодуль разошлись: " + ", ".join(result.hard_failures),
+                "submodule-hook: on_error=warn — the commit is allowed through, "
+                "but the config and submodule diverged: " + ", ".join(result.hard_failures),
                 file=sys.stderr,
             )
             return 0
         reporter.error(
-            "submodule-hook: commit заблокирован — конфиг и сабмодуль разошлись: "
-            f"{', '.join(result.hard_failures)} (команды починки выше)"
+            "submodule-hook: commit blocked — config and submodule diverged: "
+            f"{', '.join(result.hard_failures)} (fix commands above)"
         )
         return 1
     return 0
@@ -113,14 +113,14 @@ def _run_push(cfg, repo: Path, reporter: Reporter) -> int:
     if result.failures:
         if cfg.hook.on_error == "warn":
             print(
-                "submodule-hook: on_error=warn — пуш пропущен, "
-                "но есть висячие коммиты сабмодулей: " + ", ".join(result.failures),
+                "submodule-hook: on_error=warn — the push is allowed through, "
+                "but there are dangling submodule commits: " + ", ".join(result.failures),
                 file=sys.stderr,
             )
             return 0
         reporter.error(
-            "submodule-hook: push заблокирован — висячие коммиты сабмодулей "
-            "(команды починки выше)"
+            "submodule-hook: push blocked — dangling submodule commits "
+            "(fix commands above)"
         )
         return 1
     return 0

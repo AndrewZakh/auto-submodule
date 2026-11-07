@@ -95,8 +95,8 @@ def run_hook(cfg: AppConfig, repo: Path, reporter: Reporter) -> HookResult:
 
     for display, folders in unavailable.items():
         reporter.warning(
-            f"submodule-hook: {display} недоступна (fetch не удался или ветки нет на remote) — "
-            f"мягкая проверка пропущена для: {', '.join(folders)}"
+            f"submodule-hook: {display} unavailable (fetch failed or no such branch "
+            f"on the remote) — soft check skipped for: {', '.join(folders)}"
         )
 
     return HookResult(ok=not hard_failures, hard_failures=hard_failures)
@@ -122,8 +122,8 @@ def _effective_config(cfg: AppConfig, repo: Path, reporter: Reporter) -> AppConf
     effective.hook = cfg.hook  # command-line overrides keep winning
     effective.source, effective.source_rel = cfg.source, cfg.source_rel
     reporter.warning(
-        f"submodule-hook: {rel} изменён, но не в индексе — проверяю версию из индекса; "
-        f"если правка нужна в коммите: git add {rel}"
+        f"submodule-hook: {rel} modified but not staged — validating the index copy; "
+        f"if the edit belongs in the commit: git add {rel}"
     )
     return effective
 
@@ -136,14 +136,14 @@ def _validate_against_index(cfg: AppConfig, repo: Path) -> Dict[str, str]:
             raise _config_error(
                 spec,
                 f"lookup_branch must not repeat the remote prefix: "
-                f"{spec.lookup_branch!r} (укажи просто {spec.lookup_branch.split('/', 1)[1]!r})",
+                f"{spec.lookup_branch!r} (use just {spec.lookup_branch.split('/', 1)[1]!r})",
             )
         entry = gittools.index_gitlink(repo, spec.folder)
         if entry is None:
-            raise _config_error(spec, "нет такой записи в индексе — folder должен указывать на сабмодуль")
+            raise _config_error(spec, "no such entry in the index — folder must point at a submodule")
         mode, sha = entry
         if mode != GITLINK_MODE:
-            raise _config_error(spec, f"запись в индексе не сабмодуль (mode {mode})")
+            raise _config_error(spec, f"index entry is not a submodule (mode {mode})")
         current[spec.folder] = sha
     return current
 
@@ -182,16 +182,16 @@ def _report_submodule(
 
     if not hard_ok:
         lines = [
-            f"submodule-hook: {folder} — конфиг и ветка разошлись",
-            f"    env.yml закрепляет {_display(pinned)}, в коммит поедет {_short(sha_current)}",
-            "    переключи сабмодуль на коммит из конфига:",
+            f"submodule-hook: {folder} — config and branch diverged",
+            f"    env.yml pins {_display(pinned)}, the commit will carry {_short(sha_current)}",
+            "    switch the submodule to the pinned commit:",
             f"        cd {folder} && git switch --detach {pinned} && git add {folder}",
-            f"    или, если переключение осознанное, обнови конфиг: commit_sha: {sha_current}",
+            f"    or, if the switch is intentional, update the config: commit_sha: {sha_current}",
         ]
         if target_known and sha_target is not None and sha_target.lower() == sha_current.lower():
             lines += [
-                f"    подсказка: {_short(sha_current)} — текущий коммит в {lookup.display},",
-                "    конфиг просто отстал; в этом случае обнови commit_sha, а сабмодуль не откатывай",
+                f"    hint: {_short(sha_current)} is the current commit in {lookup.display} —",
+                "    the config is simply stale; in that case update commit_sha and do not roll the submodule back",
             ]
         reporter.error("\n".join(lines))
         if target_known and not target_matches:
@@ -199,21 +199,21 @@ def _report_submodule(
         return False
 
     if not target_known:
-        reporter.info(f"submodule-hook: {folder} — закреплён {_display(pinned)}")
+        reporter.info(f"submodule-hook: {folder} — pinned {_display(pinned)}")
         return True
     if sha_target is None:
-        reporter.info(f"submodule-hook: {folder} — закреплён {_display(pinned)}")
+        reporter.info(f"submodule-hook: {folder} — pinned {_display(pinned)}")
         reporter.warning(
-            f"submodule-hook: {folder} — после влития ветки сабмодуль появится "
-            f"в {lookup.branch} (сейчас его там нет)"
+            f"submodule-hook: {folder} — after this branch merges, the submodule will "
+            f"appear in {lookup.branch} (it is not there yet)"
         )
         return True
     if target_matches:
         reporter.info(
-            f"submodule-hook: {folder} — не изменен, остаёмся на {_display(pinned)} (как в {lookup.branch})"
+            f"submodule-hook: {folder} — unchanged, staying on {_display(pinned)} (as in {lookup.branch})"
         )
         return True
-    reporter.info(f"submodule-hook: {folder} — закреплён {_display(pinned)}")
+    reporter.info(f"submodule-hook: {folder} — pinned {_display(pinned)}")
     _warn_target_diverged(spec, sha_target, lookup, reporter)
     return True
 
@@ -222,8 +222,8 @@ def _warn_target_diverged(
     spec: SubmoduleSpec, sha_target: str, lookup: _Lookup, reporter: Reporter
 ) -> None:
     reporter.warning(
-        f"submodule-hook: {spec.folder} — после влития ветки сабмодуль в {lookup.branch} "
-        f"переключится: {_short(sha_target)} -> {_display(spec.commit_sha)}"
+        f"submodule-hook: {spec.folder} — after this branch merges, the submodule "
+        f"in {lookup.branch} will switch: {_short(sha_target)} -> {_display(spec.commit_sha)}"
     )
 
 
@@ -234,8 +234,8 @@ def _warn_checkout_drift(
     if status is None or status[0] != "+":
         return
     reporter.warning(
-        f"submodule-hook: {spec.folder} — чекаут сабмодуля ({_short(status[1])}) отличается "
-        f"от индекса ({_short(sha_current)}); если переключение осознанное — git add {spec.folder}"
+        f"submodule-hook: {spec.folder} — submodule checkout ({_short(status[1])}) differs "
+        f"from the index ({_short(sha_current)}); if the switch is intentional — git add {spec.folder}"
     )
 
 
@@ -292,24 +292,24 @@ def run_push_hook(
         fetched = gittools.sub_fetch(repo, spec.folder)
         if fetched is None:
             reporter.warning(
-                f"submodule-hook: {spec.folder}: сабмодуль не инициализирован — "
-                f"проверка на висячие коммиты пропущена (git submodule update --init {spec.folder})"
+                f"submodule-hook: {spec.folder}: submodule not initialized — "
+                f"dangling-commit check skipped (git submodule update --init {spec.folder})"
             )
             continue
         for sha, where in shas.items():
             verdict = gittools.sub_remote_contains(repo, spec.folder, sha, fetched)
             if verdict is None:
                 reporter.warning(
-                    f"submodule-hook: {spec.folder}: не смогли проверить коммит "
-                    f"{_short(sha)} на remote сабмодуля (offline) — проверка пропущена"
+                    f"submodule-hook: {spec.folder}: could not verify commit "
+                    f"{_short(sha)} against the submodule's remote (offline) — check skipped"
                 )
             elif not verdict:
                 failures.append(f"{spec.folder} @ {_short(sha)}")
                 reporter.error(
-                    f"submodule-hook: {spec.folder}: коммит {_short(sha)} ({where}) "
-                    "отсутствует на remote сабмодуля — не запушен или удалён force-push'ом;\n"
-                    f"    запушь сабмодуль: git -C {spec.folder} push\n"
-                    "    или переключи указатель на существующий коммит и обнови env.yml"
+                    f"submodule-hook: {spec.folder}: commit {_short(sha)} ({where}) is missing "
+                    "from the submodule's remote — not pushed or deleted by a force-push;\n"
+                    f"    push the submodule: git -C {spec.folder} push\n"
+                    "    or switch the pointer to an existing commit and update env.yml"
                 )
     return PushResult(ok=not failures, failures=failures)
 
@@ -343,7 +343,7 @@ def _referenced_submodule_shas(
         for commit in _touching_commits(repo, base, tip, folder):
             entry = gittools.tree_gitlink(repo, commit, folder)
             if entry is not None and entry[0] == GITLINK_MODE:
-                record(entry[1], f"коммит {_short(commit)}")
+                record(entry[1], f"commit {_short(commit)}")
         entry = gittools.tree_gitlink(repo, tip, folder)
         if entry is not None and entry[0] == GITLINK_MODE:
             record(entry[1], f"tip {local_ref}")

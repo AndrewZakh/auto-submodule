@@ -13,8 +13,8 @@ def test_all_equal(repo, capsys):
     result = repo.run_hook()
     assert result.ok and not result.hard_failures and not result.skipped
     out = capsys.readouterr()
-    assert "не изменен, остаёмся на" in out.out
-    assert "(как в master)" in out.out
+    assert "unchanged, staying on" in out.out
+    assert "(as in master)" in out.out
     assert out.err == ""
 
 
@@ -25,8 +25,8 @@ def test_row2_target_diverged_warns(repo, capsys):
     result = repo.run_hook()
     assert result.ok
     captured = capsys.readouterr()
-    assert "закреплён" in captured.out
-    assert f"переключится: {s2[:8]} ->" in captured.err
+    assert "pinned" in captured.out
+    assert f"will switch: {s2[:8]} ->" in captured.err
 
 
 def test_row3_hard_fail_with_fix_command(repo, capsys):
@@ -36,11 +36,11 @@ def test_row3_hard_fail_with_fix_command(repo, capsys):
     assert not result.ok
     assert result.hard_failures == [SUB_FOLDER]
     err = capsys.readouterr().err
-    assert "конфиг и ветка разошлись" in err
+    assert "config and branch diverged" in err
     assert f"cd {SUB_FOLDER} && git switch --detach" in err
     assert f"commit_sha: {s3}" in err  # full sha, copy-pasteable
-    assert "подсказка" not in err  # current != target
-    assert "переключится" not in err  # origin/master still matches the pin
+    assert "hint" not in err  # current != target
+    assert "will switch" not in err  # origin/master still matches the pin
 
 
 def test_row4_hard_fail_plus_target_warning(repo, capsys):
@@ -52,9 +52,9 @@ def test_row4_hard_fail_plus_target_warning(repo, capsys):
     result = repo.run_hook()
     assert not result.ok
     err = capsys.readouterr().err
-    assert "конфиг и ветка разошлись" in err
-    assert f"переключится: {s2[:8]} ->" in err
-    assert "подсказка" not in err  # current != target
+    assert "config and branch diverged" in err
+    assert f"will switch: {s2[:8]} ->" in err
+    assert "hint" not in err  # current != target
 
 
 def test_stale_config_hint_after_pulling_master(repo, capsys):
@@ -65,8 +65,8 @@ def test_stale_config_hint_after_pulling_master(repo, capsys):
     result = repo.run_hook()
     assert not result.ok
     err = capsys.readouterr().err
-    assert "подсказка" in err
-    assert "конфиг просто отстал" in err
+    assert "hint" in err
+    assert "the config is simply stale" in err
     assert f"commit_sha: {s2}" in err
 
 
@@ -74,7 +74,7 @@ def test_short_pin_matches_by_prefix(repo, capsys):
     repo.write_env(repo.sub_sha()[:8])
     result = repo.run_hook()
     assert result.ok
-    assert "не изменен" in capsys.readouterr().out
+    assert "unchanged" in capsys.readouterr().out
 
 
 def test_uppercase_pin_normalized(repo):
@@ -89,7 +89,7 @@ def test_offline_falls_back_to_tracking_ref(repo, git, capsys):
     git("remote", "set-url", "origin", "/no/such/remote", cwd=repo.work)
     result = repo.run_hook()
     assert result.ok
-    assert f"переключится: {s2[:8]} ->" in capsys.readouterr().err
+    assert f"will switch: {s2[:8]} ->" in capsys.readouterr().err
 
 
 def test_offline_without_ref_skips_soft_check(repo, git, capsys):
@@ -98,8 +98,8 @@ def test_offline_without_ref_skips_soft_check(repo, git, capsys):
     result = repo.run_hook()
     assert result.ok and not result.hard_failures
     captured = capsys.readouterr()
-    assert "закреплён" in captured.out
-    assert "origin/master недоступна" in captured.err
+    assert "pinned" in captured.out
+    assert "origin/master unavailable" in captured.err
     assert SUB_FOLDER in captured.err
 
 
@@ -112,7 +112,7 @@ def test_no_fetch_uses_existing_ref(repo, git, capsys):
     cfg.hook.fetch = False
     result = repo.run_hook(cfg)
     assert result.ok
-    assert "переключится" in capsys.readouterr().err
+    assert "will switch" in capsys.readouterr().err
 
 
 def test_merge_commit_skipped(repo, git, capsys):
@@ -149,7 +149,7 @@ def test_index_copy_of_env_wins(repo, capsys):
     )
     result = repo.run_hook()
     assert result.ok  # the staged copy still pins the right sha
-    assert "изменён, но не в индексе" in capsys.readouterr().err
+    assert "modified but not staged" in capsys.readouterr().err
 
 
 def test_broken_staged_config_is_config_error(repo, git):
@@ -166,7 +166,7 @@ def test_submodule_checkout_drift_warns(repo, capsys):
     result = repo.run_hook()
     assert result.ok
     err = capsys.readouterr().err
-    assert "чекаут сабмодуля" in err
+    assert "submodule checkout" in err
     assert f"git add {SUB_FOLDER}" in err
 
 
@@ -174,18 +174,18 @@ def test_uninitialized_submodule_still_checked(repo, git, capsys):
     git("submodule", "deinit", "-f", SUB_FOLDER, cwd=repo.work)
     result = repo.run_hook()
     assert result.ok
-    assert "не изменен" in capsys.readouterr().out
+    assert "unchanged" in capsys.readouterr().out
 
 
 def test_folder_not_a_submodule_is_config_error(repo):
     repo.write_env(repo.sub_sha(), folder="README.md")
-    with pytest.raises(ConfigError, match="не сабмодуль"):
+    with pytest.raises(ConfigError, match="not a submodule"):
         repo.run_hook()
 
 
 def test_unknown_folder_is_config_error(repo):
     repo.write_env(repo.sub_sha(), folder="no/such/path")
-    with pytest.raises(ConfigError, match="нет такой записи"):
+    with pytest.raises(ConfigError, match="no such entry"):
         repo.run_hook()
 
 
@@ -201,7 +201,7 @@ def test_target_absent_in_lookup_branch(repo, git, capsys):
     repo.write_env(repo.sub_sha(), branch="old")
     result = repo.run_hook()
     assert result.ok
-    assert "появится в old" in capsys.readouterr().err
+    assert "will appear in old" in capsys.readouterr().err
 
 
 def test_empty_submodules_section_is_noop(repo, capsys):
@@ -220,4 +220,4 @@ def test_two_submodules_reported_together(repo_two, capsys):
     assert result.hard_failures == [SUB_FOLDER]
     captured = capsys.readouterr()
     assert "libs/other" in captured.out  # the healthy one is reported too
-    assert "не изменен" in captured.out
+    assert "unchanged" in captured.out

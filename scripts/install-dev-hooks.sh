@@ -14,7 +14,7 @@ set -eu
 REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 command -v pre-commit >/dev/null 2>&1 || {
-    echo "pre-commit не найден в PATH: pip install -e \".[dev]\"" >&2
+    echo "pre-commit not found on PATH: pip install -e \".[dev]\"" >&2
     exit 1
 }
 

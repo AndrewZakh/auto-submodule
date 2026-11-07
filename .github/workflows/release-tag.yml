@@ -35,7 +35,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           if [ -n "$(git ls-remote --tags origin "refs/tags/$VERSION")" ]; then
-            echo "тег $VERSION уже существует — ничего не делаем"
+            echo "tag $VERSION already exists — nothing to do"
             exit 0
           fi
           git config user.name "release-bot"
