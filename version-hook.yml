@@ -18,10 +18,27 @@ git:
 
 # Order = matching priority (first match wins).
 branch_flow:
-  - {name: main,    regex: '^(master|main)$', protected: true, policy: keep}
-  - {name: patch,   regex: '^patch',          target: main, policy: increment, bump: patch}
-  - {name: feature, regex: '^feat(ure)?',     target: main, policy: increment, bump: minor}
-  - {name: tech,    regex: '^(tech|chore|docs|ci)/', target: main, policy: ignore}
+  - name: main
+    regex: '^(master|main)$'
+    protected: true    # a direct commit to main never bumps the version
+    policy: keep
+
+  - name: patch
+    regex: '^patch'
+    target: main
+    policy: increment
+    bump: patch
+
+  - name: feature
+    regex: '^feat(ure)?'
+    target: main
+    policy: increment
+    bump: minor
+
+  - name: tech
+    regex: '^(tech|chore|docs|ci)/'
+    target: main
+    policy: ignore
 
 hooks:
   auto_stage: true
