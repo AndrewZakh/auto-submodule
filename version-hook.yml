@@ -6,16 +6,39 @@ version:
   key: version
   parse_regex: '^v(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)$'
 
+# The package version mirrors the flow version (auto-version-hook v1.1.0):
+# both move together after every bump; PEP 440 style, no v-prefix here.
+version_files:
+  - path: pyproject.toml
+    regex: '^version = "(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"$'
+
 git:
   remote: origin
   fetch: true
 
 # Order = matching priority (first match wins).
 branch_flow:
-  - {name: main,    regex: '^(master|main)$', protected: true, policy: keep}
-  - {name: patch,   regex: '^patch',          target: main, policy: increment, bump: patch}
-  - {name: feature, regex: '^feat(ure)?',     target: main, policy: increment, bump: minor}
-  - {name: tech,    regex: '^(tech|chore|docs|ci)/', target: main, policy: ignore}
+  - name: main
+    regex: '^(master|main)$'
+    protected: true    # a direct commit to main never bumps the version
+    policy: keep
+
+  - name: patch
+    regex: '^patch'
+    target: main
+    policy: increment
+    bump: patch
+
+  - name: feature
+    regex: '^feat(ure)?'
+    target: main
+    policy: increment
+    bump: minor
+
+  - name: tech
+    regex: '^(tech|chore|docs|ci)/'
+    target: main
+    policy: ignore
 
 hooks:
   auto_stage: true
