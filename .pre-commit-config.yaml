@@ -1,6 +1,7 @@
 # Dev hooks via the pre-commit framework: the sibling auto-version-hook
 # (bumps env.yml, mirrors the version into pyproject.toml) plus our own
 # submodule checks. Install: ./scripts/install-dev-hooks.sh
+default_stages: [pre-commit]
 repos:
   - repo: https://github.com/AndrewZakh/auto-version-hook
     rev: v1.1.0
