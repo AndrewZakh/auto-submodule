@@ -1,0 +1,15 @@
+# Submodule pin validator for GitLab CI.
+# Copy into .gitlab-ci.yml of a repository protected by submodule-hook
+# (install it from your hosted copy of this project).
+
+submodule-check:
+  stage: test
+  image: python:3.12
+  variables:
+    GIT_DEPTH: "1"        # the hook fetches the lookup branches itself
+  script:
+    - pip install --quiet git+https://github.com/AndrewZakh/auto-submodule.git
+    - submodule-hook --check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"

@@ -1,0 +1,23 @@
+# Submodule pin validator for GitHub Actions.
+# Copy into .github/workflows/ of a repository protected by submodule-hook
+# (install it from your hosted copy of this project).
+
+name: submodule-check
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1   # the hook fetches the lookup branches itself
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet git+https://github.com/AndrewZakh/auto-submodule.git
+      - run: submodule-hook --check

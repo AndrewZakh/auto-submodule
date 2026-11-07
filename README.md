@@ -129,6 +129,23 @@ Notes:
 - the built-in alternative is `git config push.recurseSubmodules check`: the
   same idea, but configured separately in every clone and unaware of env.yml pins.
 
+## Validator in CI (`--check`)
+
+The local hook is bypassed with `git commit --no-verify`, and server merges
+(the Merge PR button) never run pre-commit hooks at all. So the same tool
+works as a server-side validator: `submodule-hook --check` writes nothing,
+only verifies — exit 0 "pins correct" (warnings tolerated), 1 "the pre-commit
+hook would block this commit", 2 "config problems". `on_error: warn` is
+ignored in check mode — the validator is always strict. CI runners check out
+in detached HEAD; the hook does not care: its verdict is built from the
+index, env.yml and the remote, not from the branch name.
+
+Ready-made jobs — copy into the target repository and substitute the install
+URL: [ci/github-actions-submodule-check.example.yml](ci/github-actions-submodule-check.example.yml)
+(pull requests and pushes to protected branches) and
+[ci/gitlab-ci-submodule-check.example.yml](ci/gitlab-ci-submodule-check.example.yml)
+(MR pipelines and pushes to main).
+
 ## Installation
 
 ```sh
@@ -242,8 +259,8 @@ problems.
   checks still work: the superproject index has the link; the checkout is not
   compared.
 - **`git commit --no-verify`** bypasses pre-commit locally, and
-  `git push --no-verify` bypasses pre-push; a server-side CI validator is
-  task `submodule/1` in [tasks.yml](tasks.yml).
+  `git push --no-verify` bypasses pre-push; the server-side answer is
+  `--check` (see "Validator in CI").
 
 ## This project runs on its own tools
 

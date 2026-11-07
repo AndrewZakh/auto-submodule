@@ -1,8 +1,9 @@
 """Command-line interface.
 
 Exit codes: 0 - ok (warnings tolerated), 1 - the config and a submodule
-diverged, the commit is blocked (submodule_hook.on_error=fail), 2 - usage or
-config errors (bad arguments, not a git repository, broken env.yml).
+diverged, the commit is blocked (submodule_hook.on_error=fail; --check is
+always strict), 2 - usage or config errors (bad arguments, not a git
+repository, broken env.yml).
 """
 
 from __future__ import annotations
@@ -35,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="pre-push mode: read pushed refs from stdin and verify the submodule "
         "commits they reference exist on the submodules' remotes",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="validator mode for CI: verify pins read-only; exit 1 if the pre-commit "
+        "hook would block (submodule_hook.on_error=warn is ignored)",
     )
     parser.add_argument("--remote", help="override submodule_hook.remote")
     parser.add_argument(
@@ -71,6 +78,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     reporter = Reporter(quiet=args.quiet)
     if args.push:
         return _run_push(cfg, repo=root, reporter=reporter)
+    if args.check:
+        cfg.hook.on_error = "fail"  # the validator is always strict
 
     try:
         result = run_hook(cfg, repo=root, reporter=reporter)
@@ -78,13 +87,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"submodule-hook: {exc}", file=sys.stderr)
         return 2
     except GitError as exc:
-        if cfg.hook.on_error == "warn":
+        if not args.check and cfg.hook.on_error == "warn":
             print(f"submodule-hook: {exc} (on_error=warn, continuing)", file=sys.stderr)
             return 0
         print(f"submodule-hook: {exc}", file=sys.stderr)
         return 1
 
     if result.hard_failures:
+        if args.check:
+            reporter.error(
+                "submodule-hook: pin check failed — the pre-commit hook would block: "
+                f"{', '.join(result.hard_failures)} (fix commands above)"
+            )
+            return 1
         if cfg.hook.on_error == "warn":
             print(
                 "submodule-hook: on_error=warn — the commit is allowed through, "
@@ -97,6 +112,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             f"{', '.join(result.hard_failures)} (fix commands above)"
         )
         return 1
+    if args.check:
+        reporter.info("submodule-hook: pin check passed")
     return 0
 
 
