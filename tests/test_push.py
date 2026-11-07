@@ -39,7 +39,7 @@ def test_push_blocked_when_sub_commit_not_pushed(repo, capsys):
     result = repo.run_push_hook(repo.push_lines())
     assert not result.ok
     err = capsys.readouterr().err
-    assert "отсутствует на remote сабмодуля" in err
+    assert "is missing from the submodule's remote" in err
     assert s3[:8] in err
     assert f"git -C {SUB_FOLDER} push" in err
 
@@ -59,7 +59,7 @@ def test_push_blocked_after_force_push_deletion(repo, capsys):
     assert not result.ok  # the branch tip still points at the deleted commit
     err = capsys.readouterr().err
     assert s3[:8] in err
-    assert "удалён force-push'ом" in err
+    assert "deleted by a force-push" in err
 
 
 def test_push_new_branch_blocked(repo, capsys):
@@ -70,7 +70,7 @@ def test_push_new_branch_blocked(repo, capsys):
     repo.git("branch", "feature/y", cwd=repo.work)
     result = repo.run_push_hook(repo.push_lines(branch="feature/y"))
     assert not result.ok
-    assert "отсутствует на remote сабмодуля" in capsys.readouterr().err
+    assert "is missing from the submodule's remote" in capsys.readouterr().err
 
 
 def test_push_deletion_lines_skipped(repo, capsys):
@@ -91,8 +91,8 @@ def test_push_uninitialized_submodule_fails_open(repo, git, capsys):
     result = repo.run_push_hook(repo.push_lines())
     assert result.ok  # cannot verify — fail open, but loudly
     err = capsys.readouterr().err
-    assert "не инициализирован" in err
-    assert "проверка на висячие коммиты пропущена" in err
+    assert "not initialized" in err
+    assert "dangling-commit check skipped" in err
 
 
 def test_push_without_pinned_submodules_is_noop(repo, capsys):
@@ -110,7 +110,7 @@ def test_cli_push_reads_stdin_and_blocks(repo, monkeypatch, capsys):
     repo.commit("bump submodule")
     monkeypatch.setattr(sys, "stdin", io.StringIO("\n".join(repo.push_lines()) + "\n"))
     assert main(["--push", "--repo", str(repo.work)]) == 1
-    assert "push заблокирован" in capsys.readouterr().err
+    assert "push blocked" in capsys.readouterr().err
 
 
 def test_cli_push_on_error_warn_allows(repo, monkeypatch, capsys):
@@ -140,7 +140,7 @@ def test_real_git_push_blocked_then_fixed(repo, git):
     push = git("push", "origin", "master", cwd=repo.work, check=False)
     assert push.returncode != 0
     assert "submodule-hook" in push.stderr
-    assert "отсутствует на remote сабмодуля" in push.stderr
+    assert "is missing from the submodule's remote" in push.stderr
 
     # push the submodule, and the same superproject push goes through
     repo.git("push", "-q", "origin", "HEAD:refs/heads/master", cwd=repo.sub)

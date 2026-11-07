@@ -7,14 +7,14 @@ from submodule_hook.cli import main
 
 def test_ok_exit_zero(repo, capsys):
     assert main(["--repo", str(repo.work)]) == 0
-    assert "не изменен" in capsys.readouterr().out
+    assert "unchanged" in capsys.readouterr().out
 
 
 def test_hard_fail_exit_one(repo, capsys):
     s3 = repo.bump_sub("s3")
     repo.set_submodule(s3)
     assert main(["--repo", str(repo.work)]) == 1
-    assert "commit заблокирован" in capsys.readouterr().err
+    assert "commit blocked" in capsys.readouterr().err
 
 
 def test_on_error_warn_exit_zero(repo, capsys):
@@ -53,7 +53,7 @@ def test_explicit_config_other_file(repo, tmp_path, capsys):
         encoding="utf-8",
     )
     assert main(["--repo", str(repo.work), "--config", str(other)]) == 0
-    assert "не изменен" in capsys.readouterr().out
+    assert "unchanged" in capsys.readouterr().out
 
 
 def test_broken_config_exit_two(repo, capsys):

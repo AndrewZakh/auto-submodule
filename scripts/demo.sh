@@ -10,19 +10,19 @@
 set -eu
 
 command -v submodule-hook >/dev/null 2>&1 || {
-    echo "submodule-hook не найден в PATH:" >&2
+    echo "submodule-hook not found on PATH:" >&2
     echo "    python3 -m venv .venv && . .venv/bin/activate && pip install ." >&2
     exit 1
 }
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 ROOT=${1:-$(mktemp -d /tmp/submodule-hook-demo.XXXXXX)}
-echo "песочница: $ROOT"
+echo "sandbox: $ROOT"
 
 title() { printf '\n\n=== %s ===\n' "$1"; }
 run()   { printf '\n$ %s\n' "$*"; "$@"; }
-fail()  { printf '\n$ %s    <- должен заблокировать\n' "$*"; if "$@"; then
-              echo "ОШИБКА: должно было заблокироваться" >&2; exit 1; fi; }
+fail()  { printf '\n$ %s    <- must block\n' "$*"; if "$@"; then
+              echo "ERROR: the command should have been blocked" >&2; exit 1; fi; }
 pin()   { printf 'submodules:\n  - folder: libs/api-clients\n    commit_sha: "%s"\n    lookup_branch: master\n' \
               "$1" > "$2/env.yml"; }
 
@@ -37,7 +37,7 @@ git() { command git \
 
 # --- 0. infrastructure ------------------------------------------------------
 
-title "0. песочница: bare-источники и первичное состояние проекта"
+title "0. sandbox: bare origins and the initial project state"
 
 git init --bare -q "$ROOT/sub_origin.git"
 git -C "$ROOT/sub_origin.git" symbolic-ref HEAD refs/heads/master
@@ -70,7 +70,7 @@ rm -rf "$SEED" "$BOOT"
 
 # --- dev A -------------------------------------------------------------------
 
-title "1. dev A: свежий клон, инициализация сабмодуля, установка хуков"
+title "1. dev A: fresh clone, submodule init, installing the hooks"
 
 A="$ROOT/a"
 run git clone -q "$ROOT/origin.git" "$A"
@@ -78,13 +78,13 @@ run git -C "$A" submodule update --init
 run "$SCRIPT_DIR/install.sh" "$A"
 SUB="$A/libs/api-clients"
 
-title "2. обычный коммит: пин, указатель и master синхронны"
+title "2. a regular commit: pin, pointer and master in sync"
 
-echo "заметка" >> "$A/README.md"
+echo "a note" >> "$A/README.md"
 run git -C "$A" add README.md
-run git -C "$A" commit -m "A: обычная работа"
+run git -C "$A" commit -m "A: regular work"
 
-title "3. осознанный бамп: коммит сабмодуля -> пуш сабмодуля -> конфиг+указатель одним коммитом"
+title "3. a conscious bump: submodule commit -> submodule push -> config+pointer in one commit"
 
 echo "lib: v1" > "$SUB/lib.txt"
 run git -C "$SUB" add -A
@@ -94,27 +94,27 @@ S1=$(git -C "$SUB" rev-parse HEAD)
 run git -C "$A" add libs/api-clients
 pin "$S1" "$A"
 run git -C "$A" add env.yml
-run git -C "$A" commit -m "A: осознанный бамп сабмодуля"
+run git -C "$A" commit -m "A: a conscious submodule bump"
 run git -C "$A" push origin master
 
-title "4. бамп без пуша сабмодуля: pre-commit пропустит, pre-push заблокирует"
+title "4. a bump without pushing the submodule: pre-commit passes, pre-push blocks"
 
 echo "lib: v2" > "$SUB/lib.txt"
 git -C "$SUB" add -A
-git -C "$SUB" commit -qm "lib: v2 (локально)"
+git -C "$SUB" commit -qm "lib: v2 (local only)"
 S2=$(git -C "$SUB" rev-parse HEAD)
 git -C "$A" add libs/api-clients
 pin "$S2" "$A"
 git -C "$A" add env.yml
-run git -C "$A" commit -m "A: бамп, сабмодуль ещё не запушен"
+run git -C "$A" commit -m "A: a bump, submodule not pushed yet"
 fail git -C "$A" push origin master
-printf '\n-- чиним: пушим сабмодуль, затем суперпроект\n'
+printf '\n-- fix: push the submodule, then the superproject\n'
 run git -C "$SUB" push -q origin HEAD:refs/heads/master
 run git -C "$A" push origin master
 
 # --- dev B -------------------------------------------------------------------
 
-title "5. dev B: свежий клон, ветка от прошлого состояния, подтянул сабмодуль — конфиг отстал"
+title "5. dev B: fresh clone, branch from an older state, submodule pulled ahead — stale config"
 
 B="$ROOT/b"
 run git clone -q "$ROOT/origin.git" "$B"
@@ -126,33 +126,33 @@ run git -C "$B" submodule update -q
 run git -C "$BSUB" fetch -q origin
 run git -C "$BSUB" checkout -q --detach "$S2"
 run git -C "$B" add libs/api-clients
-echo "работа" >> "$B/README.md"
+echo "work" >> "$B/README.md"
 git -C "$B" add README.md
-fail git -C "$B" commit -m "B: работа с новым сабмодулем, конфиг не обновил"
-printf '\n-- чиним: обновляем конфиг под фактический коммит\n'
+fail git -C "$B" commit -m "B: work on the new submodule, config not updated"
+printf '\n-- fix: update the config to the actual commit\n'
 pin "$S2" "$B"
 git -C "$B" add env.yml
-run git -C "$B" commit -m "B: конфиг подтянут под сабмодуль"
+run git -C "$B" commit -m "B: config caught up with the submodule"
 run git -C "$B" push -q origin feature/cool
 
 # --- history rewrite in the submodule ----------------------------------------
 
-title "6. мейнтейнер сабмодуля переписал историю: v2 исчез из remote"
+title "6. the submodule maintainer rewrote history: v2 is gone from the remote"
 
 run git -C "$SUB" push -qf origin "$S1:refs/heads/master"
-echo "ещё работа" >> "$A/README.md"
+echo "more work" >> "$A/README.md"
 git -C "$A" add README.md
-run git -C "$A" commit -m "A: обычная работа после force-push в сабмодуле"
+run git -C "$A" commit -m "A: regular work after a force-push in the submodule"
 fail git -C "$A" push origin master
-printf '\n-- чиним: откатываем сабмодуль и конфиг на существующий коммит\n'
+printf '\n-- fix: roll the submodule and the config back to an existing commit\n'
 run git -C "$SUB" checkout -q --detach "$S1"
 run git -C "$A" add libs/api-clients
 pin "$S1" "$A"
 git -C "$A" add env.yml
-run git -C "$A" commit -m "A: откат сабмодуля на существующий коммит"
+run git -C "$A" commit -m "A: submodule rolled back to an existing commit"
 run git -C "$A" push origin master
 
 # -----------------------------------------------------------------------------
 
-title "все сценарии отработали"
-echo "песочница осталась здесь: $ROOT"
+title "all scenarios passed"
+echo "the sandbox remains at: $ROOT"
