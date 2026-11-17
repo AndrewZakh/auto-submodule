@@ -277,14 +277,15 @@ The server half of version validation is CI —
 [version-check.yml](.github/workflows/version-check.yml); release tags are
 placed by [release-tag.yml](.github/workflows/release-tag.yml).
 
-Project tasks are tracked in [tasks.yml](tasks.yml) via
+Project tasks are tracked in [.jearless/tasks.yml](.jearless/tasks.yml) via
 [jearless](https://github.com/AndrewZakh/jearless) — a git-native tracker:
 status is never stored, it is derived from branches and merge commits:
 
 ```sh
 jear sprint                       # available / in_progress / done
+jear board                        # the kanban view over the canonical states
 jear add submodule "summary"      # a new task (the registry language is English)
-jear take submodule 1             # taking a task = pushing branch feature/submodule/1-…
+jear take submodule 2             # taking a task = pushing branch feature/submodule/2-…
 ```
 
 Development hooks are installed by `scripts/install-dev-hooks.sh`

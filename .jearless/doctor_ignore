@@ -1,0 +1,5 @@
+# The scar ledger: accepted holes on main's first-parent chain (task tooling/31).
+# One sha per line, with the cause. Doctor counts them in the summary instead
+# of nagging; new sins still scream.
+d08a91a  # initial commit — the egg before the chicken (pre-jearless repo)
+a0eafa6  # bootstrap: env.yml + auto-version-hook config — landed before jearless adopted
