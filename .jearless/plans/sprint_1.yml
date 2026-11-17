@@ -1,0 +1,15 @@
+# Sprint 1 of auto-submodule: operator experience.
+# Deliberately out: submodule/2 — its own description says to decide after the
+# team has lived with the hook (no real usage data yet); submodule/5 — needs a
+# focused external experiment with Renovate/Dependabot, the sprint 2 candidate.
+plan:
+  goal: smoothen the operator experience — one-command sync and opt-in auto-push
+  tasks:
+    - task: submodule/3
+      planned:
+        start: 2026-11-17
+        end: 2026-11-18
+    - task: submodule/4
+      planned:
+        start: 2026-11-18
+        end: 2026-11-20
